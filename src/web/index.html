@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Makas</title>
+<style>
+:root{
+  --bg:#111216; --panel:#17181d; --panel2:#1d1f25; --line:#2a2c34; --text:#e6e7ea; --dim:#8b8e98;
+  --accent:#ff5c38; --accent2:#ff7a5c; --seg:#26344d; --segb:#3f5c93; --wave:#7fa4e6; --fade:#ffc857;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.35 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;overflow:hidden;user-select:none}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:#3a3d47;background:#23252c}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.4;pointer-events:none}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{background:var(--accent2)}
+button.icon{padding:5px 8px;min-width:32px}
+select,input[type=number]{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px 6px;outline:none}
+input[type=number]{width:62px}
+select:focus,input:focus{border-color:var(--segb)}
+kbd{font:11px Consolas,monospace;background:#22242b;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:#c9cbd2}
+#app{display:grid;grid-template-rows:42px 1fr auto auto 24px;height:100%}
+header{display:flex;align-items:center;gap:8px;padding:0 10px;background:var(--panel);border-bottom:1px solid var(--line)}
+.logo{font-weight:700;letter-spacing:.3px;display:flex;align-items:center;gap:7px;margin-right:6px}
+.logo i{width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;box-shadow:0 0 10px var(--accent)}
+#fileinfo{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+#fileinfo b{color:var(--text);font-weight:600}
+.split-btn{display:flex}
+.split-btn .primary:first-child{border-radius:6px 0 0 6px}
+.split-btn .primary:last-child{border-radius:0 6px 6px 0;border-left:1px solid rgba(0,0,0,.25);padding:5px 7px}
+#stage{position:relative;background:#000;min-height:120px;overflow:hidden}
+video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#fadeov{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none}
+#badge{position:absolute;top:12px;left:12px;background:rgba(255,92,56,.9);color:#fff;font-weight:700;font-size:11px;padding:3px 8px;border-radius:4px;letter-spacing:.5px;display:none}
+#empty,#audioonly,#nopreview{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--dim);text-align:center;padding:20px}
+#empty .big{font-size:20px;color:var(--text);font-weight:600}
+#empty .box{border:2px dashed #2f323b;border-radius:14px;padding:38px 56px;display:flex;flex-direction:column;align-items:center;gap:10px}
+body.dragging #empty .box{border-color:var(--accent);color:var(--text)}
+#audioonly{display:none;background:radial-gradient(circle at 50% 40%,#1b2233,#000)}
+#audioonly .big{font-size:18px;color:var(--text)}
+#nopreview{display:none;background:#000}
+#controls{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--panel);border-top:1px solid var(--line);flex-wrap:wrap}
+.sep{width:1px;height:22px;background:var(--line);margin:0 2px}
+#time{font:600 13px Consolas,"Cascadia Mono",monospace;min-width:190px;color:var(--text)}
+#time span{color:var(--dim);font-weight:400}
+.grp{display:flex;align-items:center;gap:6px;color:var(--dim)}
+.grp label{display:flex;align-items:center;gap:5px}
+#outinfo{margin-left:auto;color:var(--dim)}
+#outinfo b{color:var(--text)}
+#tlwrap{position:relative;background:var(--panel);border-top:1px solid var(--line);height:150px}
+canvas{display:block;width:100%;height:100%}
+#tlwrap canvas{cursor:default}
+footer{display:flex;align-items:center;gap:14px;padding:0 10px;color:var(--dim);font-size:11.5px;background:#0d0e11;border-top:1px solid var(--line);white-space:nowrap;overflow:hidden}
+#pop{position:absolute;top:44px;right:10px;width:300px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 18px 50px rgba(0,0,0,.55);padding:12px;display:none;z-index:20}
+#pop h4{margin:0 0 8px;font-size:12px;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+#pop .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:7px 0}
+#pop .row select{width:170px}
+#pop .hint{color:var(--dim);font-size:11.5px;margin:2px 0 6px}
+#pop hr{border:0;border-top:1px solid var(--line);margin:10px 0}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50}
+#modal .card{width:440px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#modal h3{margin:0 0 10px;font-size:15px}
+#bar{height:8px;background:#0c0d10;border-radius:5px;overflow:hidden;border:1px solid var(--line)}
+#bar div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--fade));transition:width .1s linear}
+#mstat{color:var(--dim);margin:8px 0 14px;font-variant-numeric:tabular-nums;word-break:break-all;white-space:pre-line}
+#mbtns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#toast{position:fixed;left:50%;bottom:190px;transform:translateX(-50%);background:#2a1513;border:1px solid #6b2a20;color:#ffd5cc;padding:9px 14px;border-radius:8px;max-width:70%;display:none;z-index:60;white-space:pre-wrap;user-select:text}
+#toast.ok{background:#13261a;border-color:#2b6b3d;color:#cff5da}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo"><i></i>Makas</div>
+    <button id="bOpen" title="Open file (Ctrl+O)">Open</button>
+    <div id="fileinfo">Drop a file or press <kbd>Ctrl</kbd>+<kbd>O</kbd></div>
+    <div class="split-btn">
+      <button class="primary" id="bExport" title="Export (Ctrl+E) · Quick export next to source (Ctrl+Shift+E)" disabled>Export</button>
+      <button class="primary" id="bExpMenu" title="Export settings">▾</button>
+    </div>
+  </header>
+
+  <div id="stage">
+    <video id="v" preload="auto"></video>
+    <div id="fadeov"></div>
+    <div id="badge">REMOVED</div>
+    <div id="audioonly"><div class="big" id="aoname"></div><div>Audio file — use the waveform below</div></div>
+    <div id="nopreview"><div class="big" style="color:var(--text);font-size:16px">No preview for this codec</div><div>Cutting and export still work. Use the waveform and timecodes.</div></div>
+    <div id="empty"><div class="box"><div class="big">Drop video or audio here</div><div>or <button id="bOpen2">Open file</button></div><div style="margin-top:6px"><kbd>S</kbd> split · <kbd>Del</kbd> remove part · <kbd>Ctrl</kbd>+<kbd>E</kbd> export</div></div></div>
+  </div>
+
+  <div id="controls">
+    <button class="icon" id="bPlay" title="Play / pause (Space)">▶</button>
+    <div id="time">00:00.00 <span>/ 00:00.00</span></div>
+    <div class="sep"></div>
+    <button id="bSplit" title="Split at playhead (S)">✂ Split</button>
+    <button id="bDel" title="Remove / restore selected part (Del)">Remove</button>
+    <button id="bUndo" title="Undo (Ctrl+Z)">↶</button>
+    <button id="bRedo" title="Redo (Ctrl+Y)">↷</button>
+    <div class="sep"></div>
+    <div class="grp" id="fadegrp">
+      <label title="Fade in at start of selected part">Fade in <input type="number" id="fi" min="0" step="0.1" value="0"></label>
+      <label title="Fade out at end of selected part">out <input type="number" id="fo" min="0" step="0.1" value="0"></label>
+      <button id="bFadeAll" title="Apply these fade values to every kept part">All parts</button>
+    </div>
+    <div class="sep"></div>
+    <label class="grp" title="Skip removed parts and preview fades while playing (P)"><input type="checkbox" id="cPrev" checked> Preview result</label>
+    <div id="outinfo"></div>
+  </div>
+
+  <div id="tlwrap"><canvas id="tl"></canvas></div>
+
+  <footer>
+    <span><kbd>Space</kbd> play</span><span><kbd>S</kbd> split</span><span><kbd>Del</kbd> remove</span>
+    <span><kbd>I</kbd>/<kbd>O</kbd> trim start/end</span><span><kbd>F</kbd> fade part</span>
+    <span><kbd>←</kbd><kbd>→</kbd> frame</span><span><kbd>Shift</kbd> 1s</span><span><kbd>[</kbd><kbd>]</kbd> cuts</span>
+    <span><kbd>Ctrl</kbd>+wheel zoom</span><span><kbd>Ctrl</kbd>+<kbd>Z</kbd> undo</span>
+    <span id="ver" style="margin-left:auto"></span>
+  </footer>
+</div>
+
+<div id="pop">
+  <h4>Export</h4>
+  <div class="row"><span>Mode</span><select id="sMode"><option value="encode">Re-encode (exact, fades)</option><option value="copy">Stream copy (instant)</option></select></div>
+  <div class="hint" id="modeHint"></div>
+  <div class="row"><span>Encoder</span><select id="sEnc"></select></div>
+  <div class="row"><span>Quality</span><select id="sQual"><option value="high">High</option><option value="balanced">Balanced</option><option value="small">Small file</option></select></div>
+  <div class="row"><span>Format</span><select id="sFmt"><option value="mp4">MP4</option><option value="mkv">MKV</option><option value="mov">MOV</option><option value="same">Same as source</option></select></div>
+  <hr>
+  <h4>Fades</h4>
+  <div class="row"><span>Fade affects</span><span><label><input type="checkbox" id="cFV" checked> Video</label> &nbsp;<label><input type="checkbox" id="cFA" checked> Audio</label></span></div>
+  <div class="row"><span>Default fade (F key)</span><span><input type="number" id="sDef" min="0.05" step="0.1" value="0.5"> s</span></div>
+  <div class="row"><span>Auto-fade new cuts</span><input type="checkbox" id="cAuto"></div>
+</div>
+
+<div id="modal"><div class="card">
+  <h3 id="mtitle">Exporting…</h3>
+  <div id="bar"><div></div></div>
+  <div id="mstat"></div>
+  <div id="mbtns"></div>
+</div></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const host = window.chrome && chrome.webview;
+const send = o => host && host.postMessage(o);
+const v = $('v'), cv = $('tl'), ctx = cv.getContext('2d');
+
+let info = null, dur = 0, fps = 30, fileName = '';
+let segs = [], sel = -1, undoS = [], redoS = [];
+let view = {start: 0, len: 1};
+let wave = new Uint8Array(0), waveRate = 100;
+let encoders = [];
+let canPreview = true, exporting = false;
+const S = {mode:'encode', encoder:'auto', quality:'high', format:'mp4', fadeVideo:true, fadeAudio:true, defFade:0.5, autoFade:false, preview:true, volume:1};
+
+// ---------- utils ----------
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+function fmt(t, full){
+  t = Math.max(0, t || 0);
+  const h = Math.floor(t/3600), m = Math.floor(t/60)%60, s = Math.floor(t)%60, c = Math.floor((t%1)*100);
+  const p = n => String(n).padStart(2,'0');
+  return (h || full === 'h' ? h + ':' + p(m) : p(m)) + ':' + p(s) + (full === false ? '' : '.' + p(c));
+}
+function fmtSize(b){ return b > 1<<30 ? (b/(1<<30)).toFixed(2)+' GB' : (b/(1<<20)).toFixed(1)+' MB'; }
+let toastT;
+function toast(text, ok){ const t = $('toast'); t.textContent = text; t.className = ok ? 'ok' : ''; t.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => t.style.display = 'none', ok ? 2500 : 7000); }
+$('toast').onclick = () => $('toast').style.display = 'none';
+const minLen = () => 2 / fps;
+
+// ---------- settings ----------
+function saveSettings(){ send({type:'settings', data:S}); }
+function applySettingsUI(){
+  $('sMode').value = S.mode; $('sQual').value = S.quality; $('sFmt').value = S.format;
+  $('cFV').checked = S.fadeVideo; $('cFA').checked = S.fadeAudio; $('sDef').value = S.defFade; $('cAuto').checked = S.autoFade;
+  $('cPrev').checked = S.preview; fillEncoders(); modeHint();
+}
+function fillEncoders(){
+  const names = {h264_nvenc:'NVIDIA H.264', hevc_nvenc:'NVIDIA HEVC', h264_qsv:'Intel H.264', hevc_qsv:'Intel HEVC', h264_amf:'AMD H.264', hevc_amf:'AMD HEVC'};
+  const hw = encoders.find(e => e.startsWith('h264'));
+  const opts = [['auto', 'Auto' + (hw ? ' (' + names[hw] + ')' : ' (CPU)')], ...encoders.map(e => [e, names[e] || e]), ['libx264','CPU H.264'], ['libx265','CPU HEVC (slow)']];
+  $('sEnc').innerHTML = opts.map(([k,n]) => `<option value="${k}">${n}</option>`).join('');
+  $('sEnc').value = opts.some(o => o[0] === S.encoder) ? S.encoder : 'auto';
+}
+function modeHint(){
+  $('modeHint').textContent = S.mode === 'copy'
+    ? 'No re-encode: instant, zero quality loss. Cuts snap to nearest keyframes, fades are ignored.'
+    : 'Frame-accurate cuts with fades. Uses GPU encoder when available.';
+  ['sEnc','sQual','sFmt'].forEach(id => $(id).disabled = S.mode === 'copy');
+}
+[['sMode','mode'],['sEnc','encoder'],['sQual','quality'],['sFmt','format']].forEach(([id,k]) => $(id).onchange = e => { S[k] = e.target.value; modeHint(); saveSettings(); draw(); });
+$('cFV').onchange = e => { S.fadeVideo = e.target.checked; saveSettings(); };
+$('cFA').onchange = e => { S.fadeAudio = e.target.checked; saveSettings(); };
+$('cAuto').onchange = e => { S.autoFade = e.target.checked; saveSettings(); };
+$('sDef').onchange = e => { S.defFade = Math.max(0.05, +e.target.value || 0.5); e.target.value = S.defFade; saveSettings(); };
+$('cPrev').onchange = e => { S.preview = e.target.checked; saveSettings(); };
+$('bExpMenu').onclick = e => { e.stopPropagation(); const p = $('pop'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; };
+$('pop').addEventListener('mousedown', e => e.stopPropagation());
+document.addEventListener('mousedown', () => $('pop').style.display = 'none');
+
+// ---------- host messages ----------
+host && host.addEventListener('message', e => {
+  const m = e.data;
+  switch (m.type){
+    case 'init':
+      try { if (m.settings) Object.assign(S, JSON.parse(m.settings)); } catch {}
+      encoders = m.encoders || []; applySettingsUI(); v.volume = S.volume;
+      $('ver').textContent = 'Makas ' + (m.version || '').split('+')[0];
+      break;
+    case 'encoders': encoders = m.encoders; fillEncoders(); break;
+    case 'loaded': onLoaded(m); break;
+    case 'info': onInfo(m); break;
+    case 'wave': {
+      const bytes = Uint8Array.from(atob(m.data), c => c.charCodeAt(0));
+      const n = new Uint8Array(m.offset + bytes.length); n.set(wave.subarray(0, m.offset)); n.set(bytes, m.offset);
+      wave = n; waveRate = m.rate; draw(); break;
+    }
+    case 'error': toast(m.text); break;
+    case 'exportStart': exporting = true; showModal('Exporting…', 0, '', [['Cancel', () => send({type:'cancelExport'})]]); expT0 = performance.now(); break;
+    case 'exportProgress': {
+      const p = m.done / m.total, el = (performance.now() - expT0) / 1000, speed = m.done / Math.max(el, .01);
+      const eta = p > 0.01 ? el / p - el : 0;
+      setModal(p, `${Math.round(p*100)}% · ${speed.toFixed(1)}× realtime · ETA ${fmt(eta, false)}`);
+      break;
+    }
+    case 'exportDone':
+      exporting = false;
+      showModal('Done', 1, `${m.target}\n${fmtSize(m.size)} · ${m.seconds.toFixed(1)} s`, [
+        ['Show in folder', () => send({type:'reveal'})], ['Play', () => send({type:'openOutput'})],
+        ['Open in Makas', () => { hideModal(); send({type:'openOutputInEditor'}); }], ['Close', hideModal, true]]);
+      break;
+    case 'exportCancelled': exporting = false; hideModal(); break;
+    case 'exportError': exporting = false; hideModal(); toast('Export failed:\n' + m.text.slice(-900)); break;
+  }
+});
+let expT0 = 0;
+function showModal(title, p, stat, btns){
+  $('mtitle').textContent = title; setModal(p, stat);
+  const b = $('mbtns'); b.innerHTML = '';
+  btns.forEach(([t, fn, primary]) => { const x = document.createElement('button'); x.textContent = t; if (primary) x.className = 'primary'; x.onclick = fn; b.appendChild(x); });
+  $('modal').style.display = 'flex';
+  const last = b.lastChild; last && last.focus();
+}
+function setModal(p, stat){ $('bar').firstChild.style.width = (p*100).toFixed(1) + '%'; if (stat !== undefined) $('mstat').textContent = stat; }
+function hideModal(){ $('modal').style.display = 'none'; }
+
+// ---------- open ----------
+// 'loaded' arrives instantly (player starts), 'info' follows once ffprobe is done.
+let probed = false;
+function onLoaded(m){
+  info = {hasVideo:true, hasAudio:true, size:m.size}; probed = false; dur = 0; fps = 30; fileName = m.name;
+  segs = []; sel = -1; undoS = []; redoS = [];
+  view = {start:0, len:1}; wave = new Uint8Array(0);
+  canPreview = true;
+  $('empty').style.display = 'none'; $('nopreview').style.display = 'none'; $('audioonly').style.display = 'none';
+  $('aoname').textContent = m.name;
+  $('fileinfo').innerHTML = `<b>${esc(m.name)}</b> · ${fmtSize(m.size)}`;
+  $('bExport').disabled = false;
+  send({type:'title', text: m.name + ' — Makas'});
+  v.src = m.url; v.load();
+  syncUI(); draw();
+}
+function setDuration(d){
+  if (!(d > 0)) return;
+  if (!segs.length){ dur = d; segs = [{s:0, e:d, on:true, fi:0, fo:0}]; sel = 0; view = {start:0, len:d}; }
+  else if (Math.abs(d - dur) > 1e-3 && d > segs[segs.length - 1].s + minLen()){ // probe is authoritative
+    const wasFull = view.len >= dur - 1e-6; dur = d; segs[segs.length - 1].e = d; if (wasFull) view.len = d; else view.start = Math.min(view.start, Math.max(0, d - view.len));
+  }
+  syncUI(); draw();
+}
+function onInfo(m){
+  const size = info.size; info = JSON.parse(m.info); info.size = info.size || size; probed = true;
+  fps = info.fps || 30;
+  setDuration(info.duration || v.duration);
+  if (!info.hasVideo) { $('audioonly').style.display = 'flex'; $('nopreview').style.display = 'none'; }
+  else if (!canPreview) $('nopreview').style.display = 'flex';
+  const parts = [`<b>${esc(fileName)}</b>`];
+  if (info.hasVideo) parts.push(`${info.width}×${info.height}`, `${+fps.toFixed(2)} fps`, info.vcodec);
+  if (info.hasAudio) parts.push(info.acodec);
+  parts.push(fmt(dur, false), fmtSize(info.size));
+  $('fileinfo').innerHTML = parts.join(' · ');
+}
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+v.addEventListener('error', () => { if (!info || !v.getAttribute('src')) return; canPreview = false; if (!probed || info.hasVideo) $('nopreview').style.display = 'flex'; });
+v.addEventListener('loadedmetadata', () => { if (!probed && isFinite(v.duration)) setDuration(v.duration); if (!probed && !v.videoWidth) $('audioonly').style.display = 'flex'; });
+$('bOpen').onclick = $('bOpen2').onclick = () => send({type:'open'});
+
+// drag & drop
+document.addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('dragging'); });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dragging'); });
+document.addEventListener('drop', e => {
+  e.preventDefault(); document.body.classList.remove('dragging');
+  if (e.dataTransfer.files.length && host.postMessageWithAdditionalObjects) host.postMessageWithAdditionalObjects({type:'drop'}, e.dataTransfer.files);
+});
+
+// ---------- edit ops ----------
+function snapshot(){ undoS.push(JSON.stringify({segs, sel})); if (undoS.length > 300) undoS.shift(); redoS = []; }
+function restore(from, to){ if (!from.length) return; to.push(JSON.stringify({segs, sel})); const st = JSON.parse(from.pop()); segs = st.segs; sel = st.sel; syncUI(); draw(); }
+const undo = () => restore(undoS, redoS), redo = () => restore(redoS, undoS);
+const segAt = t => { for (let i = 0; i < segs.length; i++) if (t < segs[i].e) return i; return segs.length - 1; };
+const now = () => v.currentTime || 0;
+
+function split(t = now(), silent){
+  if (!segs.length) return -1;
+  const i = segAt(t), g = segs[i];
+  if (t - g.s < minLen() || g.e - t < minLen()) return -1;
+  if (!silent) snapshot();
+  const af = S.autoFade ? S.defFade : 0;
+  const a = {...g, e:t}, b = {...g, s:t};
+  a.fi = Math.min(g.fi, (a.e - a.s) / 2); a.fo = Math.min(af, (a.e - a.s) / 2);
+  b.fo = Math.min(g.fo, (b.e - b.s) / 2); b.fi = Math.min(af, (b.e - b.s) / 2);
+  segs.splice(i, 1, a, b); sel = i + 1;
+  syncUI(); draw(); return i;
+}
+function toggleRemove(i = sel){
+  if (i < 0 || !segs[i]) return;
+  snapshot(); segs[i].on = !segs[i].on;
+  if (!segs.some(s => s.on)) { segs[i].on = true; undoS.pop(); toast('At least one part must stay.'); }
+  syncUI(); draw();
+}
+function trim(side){ // I = drop everything before playhead, O = after
+  if (!segs.length) return;
+  snapshot();
+  const t = now(); split(t, true);
+  segs.forEach(g => { if (side === 'in' ? g.e <= t + 1e-6 : g.s >= t - 1e-6) g.on = false; });
+  if (!segs.some(s => s.on)) { restore(undoS, []); return; }
+  sel = segAt(t + (side === 'in' ? 1e-4 : -1e-4)); syncUI(); draw();
+}
+function setFade(which, val, i = sel, push = true){
+  const g = segs[i]; if (!g) return;
+  if (push) snapshot();
+  const L = g.e - g.s, other = which === 'fi' ? g.fo : g.fi;
+  g[which] = clamp(+val || 0, 0, Math.max(0, L - other));
+  syncUI(); draw();
+}
+function toggleFade(){
+  const g = segs[sel]; if (!g) return;
+  snapshot();
+  const on = g.fi > 0 || g.fo > 0, L = g.e - g.s, d = Math.min(S.defFade, L / 2);
+  g.fi = on ? 0 : d; g.fo = on ? 0 : d; syncUI(); draw();
+}
+$('bSplit').onclick = () => split();
+$('bDel').onclick = () => toggleRemove();
+$('bUndo').onclick = undo; $('bRedo').onclick = redo;
+$('fi').onchange = e => setFade('fi', e.target.value);
+$('fo').onchange = e => setFade('fo', e.target.value);
+$('bFadeAll').onclick = () => {
+  snapshot(); const fi = +$('fi').value || 0, fo = +$('fo').value || 0;
+  segs.forEach((g, i) => { if (!g.on) return; const L = g.e - g.s; g.fi = Math.min(fi, L/2); g.fo = Math.min(fo, L/2); });
+  syncUI(); draw(); toast('Fades applied to all kept parts', true);
+};
+
+function exportSegments(){
+  // merge neighbouring kept parts that have no fade between them
+  const out = [];
+  for (const g of segs){
+    if (!g.on) continue;
+    const last = out[out.length - 1];
+    if (last && Math.abs(last.e - g.s) < 1e-6 && last.fo === 0 && g.fi === 0) { last.e = g.e; last.fo = g.fo; }
+    else out.push({s:g.s, e:g.e, fi:g.fi, fo:g.fo});
+  }
+  return out;
+}
+function doExport(quick){
+  if (!segs.length || exporting) return;
+  $('pop').style.display = 'none'; v.pause();
+  send({type:'export', quick, segments: exportSegments(), opts:{mode:S.mode, encoder:S.encoder, quality:S.quality, format:S.format, fadeVideo:S.fadeVideo, fadeAudio:S.fadeAudio}});
+}
+$('bExport').onclick = () => doExport(false);
+
+function syncUI(){
+  const g = segs[sel];
+  $('bDel').textContent = g && !g.on ? 'Restore' : 'Remove';
+  $('bDel').disabled = !g; $('bSplit').disabled = !info;
+  $('bUndo').disabled = !undoS.length; $('bRedo').disabled = !redoS.length;
+  if (document.activeElement !== $('fi')) $('fi').value = g ? +g.fi.toFixed(2) : 0;
+  if (document.activeElement !== $('fo')) $('fo').value = g ? +g.fo.toFixed(2) : 0;
+  $('fi').disabled = $('fo').disabled = !g;
+  if (info){
+    const ex = exportSegments(), total = ex.reduce((a, x) => a + x.e - x.s, 0), kept = segs.filter(s => s.on).length;
+    $('outinfo').innerHTML = `Output <b>${fmt(total)}</b> · ${kept} part${kept > 1 ? 's' : ''}`;
+  }
+}
+
+// ---------- playback ----------
+function togglePlay(){
+  if (!segs.length || !canPreview) return;
+  if (v.paused){
+    if (S.preview){ const i = segAt(now()); if (!segs[i].on || now() >= dur - 0.02) { const j = nextKept(i, now() >= dur - 0.02); if (j < 0) return; v.currentTime = segs[j].s; } }
+    v.play().catch(() => {});
+  } else v.pause();
+}
+function nextKept(i, fromStart){ for (let k = fromStart ? 0 : i + 1; k < segs.length; k++) if (segs[k].on) return k; return -1; }
+v.addEventListener('play', () => $('bPlay').textContent = '❚❚');
+v.addEventListener('pause', () => $('bPlay').textContent = '▶');
+$('bPlay').onclick = togglePlay;
+
+let pendingSeek = null;
+function seek(t){
+  t = clamp(t, 0, dur);
+  if (!canPreview) { fakeT = t; draw(); return; }
+  if (v.seeking) { pendingSeek = t; } else v.currentTime = t;
+  fakeT = t; draw();
+}
+let fakeT = 0;
+v.addEventListener('timeupdate', () => draw());
+v.addEventListener('seeked', () => { draw(); if (pendingSeek !== null) { const t = pendingSeek; pendingSeek = null; v.currentTime = t; } });
+const curT = () => canPreview ? (pendingSeek ?? (v.seeking ? fakeT : v.currentTime)) : fakeT;
+
+function step(dt){ if (!info) return; v.pause(); const t = curT(); seek(dt === 'f+' ? (Math.floor(t*fps + 0.01) + 1.5) / fps : dt === 'f-' ? (Math.floor(t*fps + 0.01) - 0.5) / fps : t + dt); }
+function jumpCut(dir){
+  const t = curT(), cuts = [0, ...segs.map(g => g.e)];
+  const c = dir > 0 ? cuts.find(x => x > t + 1e-3) : [...cuts].reverse().find(x => x < t - 1e-3);
+  if (c !== undefined) { v.pause(); seek(c); sel = segAt(Math.min(c + 1e-4, dur)); syncUI(); }
+}
+
+function tick(){
+  if (info && segs.length){
+    const t = curT(), i = segAt(t), g = segs[i];
+    if (!v.paused && S.preview){
+      if (!g.on){ const j = nextKept(i); if (j < 0) { v.pause(); } else v.currentTime = segs[j].s; }
+    }
+    // fade preview
+    let gain = 1;
+    if (g && g.on && S.preview){
+      if (g.fi > 0) gain = Math.min(gain, (t - g.s) / g.fi);
+      if (g.fo > 0) gain = Math.min(gain, (g.e - t) / g.fo);
+      gain = clamp(gain, 0, 1);
+    }
+    $('fadeov').style.opacity = S.fadeVideo ? 1 - gain : 0;
+    v.volume = clamp(S.volume * (S.fadeAudio ? gain : 1), 0, 1);
+    $('badge').style.display = g && !g.on ? 'block' : 'none';
+    $('time').innerHTML = `${fmt(t)} <span>/ ${fmt(dur)} · f${Math.floor(t * fps + 0.01)}</span>`;
+    if (!v.paused){
+      if (t > view.start + view.len * 0.97 || t < view.start) { view.start = clamp(t - view.len * 0.05, 0, Math.max(0, dur - view.len)); }
+      draw();
+    }
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+// ---------- timeline ----------
+const RULER = 22, PAD = 6;
+let W = 0, H = 0, dpr = 1;
+function resize(){
+  dpr = window.devicePixelRatio || 1; const r = cv.getBoundingClientRect();
+  W = r.width; H = r.height; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); draw();
+}
+new ResizeObserver(resize).observe(cv);
+const tx = t => (t - view.start) / view.len * W;
+const xt = x => view.start + x / W * view.len;
+let hatch = null;
+function getHatch(){
+  if (hatch) return hatch;
+  const c = document.createElement('canvas'); c.width = c.height = 8; const g = c.getContext('2d');
+  g.fillStyle = '#15161a'; g.fillRect(0,0,8,8); g.strokeStyle = '#24262d'; g.lineWidth = 2; g.beginPath(); g.moveTo(0,8); g.lineTo(8,0); g.stroke();
+  return hatch = ctx.createPattern(c, 'repeat');
+}
+let drawQueued = false;
+function draw(){ if (!drawQueued) { drawQueued = true; requestAnimationFrame(() => { drawQueued = false; render(); }); } }
+function render(){
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#17181d'; ctx.fillRect(0, 0, W, H);
+  if (!segs.length) { ctx.fillStyle = '#5c5f69'; ctx.font = '12px Segoe UI'; ctx.fillText('Timeline', 10, RULER + 30); return; }
+  // ruler
+  ctx.fillStyle = '#121317'; ctx.fillRect(0, 0, W, RULER);
+  const steps = [1/fps, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600];
+  const pxPerSec = W / view.len; let st = steps.find(s => s * pxPerSec >= 80) || 3600;
+  ctx.strokeStyle = '#30323a'; ctx.fillStyle = '#8b8e98'; ctx.font = '10.5px Segoe UI'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let t = Math.floor(view.start / st) * st; t <= view.start + view.len; t += st){
+    const x = Math.round(tx(t)) + .5; ctx.moveTo(x, RULER - 8); ctx.lineTo(x, RULER);
+    for (let k = 1; k < 4; k++){ const xx = Math.round(tx(t + st * k / 4)) + .5; ctx.moveTo(xx, RULER - 3); ctx.lineTo(xx, RULER); }
+    ctx.fillText(st < 1 ? fmt(t) : fmt(t, false), x + 3, 11);
+  }
+  ctx.stroke();
+  const top = RULER + PAD, bot = H - PAD, th = bot - top;
+  // segments
+  segs.forEach((g, i) => {
+    const x0 = tx(g.s), x1 = tx(g.e); if (x1 < 0 || x0 > W) return;
+    const a = Math.max(x0, -2), b = Math.min(x1, W + 2);
+    ctx.fillStyle = g.on ? '#26344d' : getHatch(); ctx.fillRect(a, top, b - a, th);
+    // waveform
+    if (wave.length){
+      ctx.fillStyle = g.on ? 'rgba(127,164,230,.75)' : 'rgba(127,164,230,.18)';
+      const mid = top + th / 2, amp = th / 2 - 3;
+      for (let x = Math.max(0, Math.floor(a)); x < Math.min(W, b); x++){
+        const i0 = Math.floor(xt(x) * waveRate), i1 = Math.max(i0 + 1, Math.floor(xt(x + 1) * waveRate));
+        let m = 0; for (let k = i0; k < i1 && k < wave.length; k++) if (wave[k] > m) m = wave[k];
+        if (i0 >= wave.length) break;
+        const h = m / 255 * amp; if (h > 0.4) ctx.fillRect(x, mid - h, 1, h * 2);
+      }
+    }
+    if (g.on){
+      // fades
+      const fiw = g.fi / view.len * W, fow = g.fo / view.len * W;
+      ctx.fillStyle = 'rgba(0,0,0,.5)';
+      if (fiw > 0){ ctx.beginPath(); ctx.moveTo(x0, top); ctx.lineTo(x0 + fiw, top); ctx.lineTo(x0, bot); ctx.fill(); }
+      if (fow > 0){ ctx.beginPath(); ctx.moveTo(x1, top); ctx.lineTo(x1 - fow, top); ctx.lineTo(x1, bot); ctx.fill(); }
+      ctx.strokeStyle = '#ffc857'; ctx.lineWidth = 1.5; ctx.beginPath();
+      if (fiw > 0){ ctx.moveTo(x0, bot); ctx.lineTo(x0 + fiw, top); }
+      if (fow > 0){ ctx.moveTo(x1, bot); ctx.lineTo(x1 - fow, top); }
+      ctx.stroke();
+      if (i === sel || hoverSeg === i){
+        ctx.fillStyle = '#ffc857';
+        ctx.fillRect(x0 + fiw - 4, top, 8, 8); ctx.fillRect(x1 - fow - 4, top, 8, 8);
+      }
+    }
+    if (i === sel){ ctx.strokeStyle = '#ff5c38'; ctx.lineWidth = 2; ctx.strokeRect(a + 1, top + 1, b - a - 2, th - 2); }
+    else { ctx.strokeStyle = g.on ? '#3f5c93' : '#2a2c34'; ctx.lineWidth = 1; ctx.strokeRect(a + .5, top + .5, b - a - 1, th - 1); }
+    if (!g.on && x1 - x0 > 60){ ctx.fillStyle = '#6b6e78'; ctx.font = '600 10.5px Segoe UI'; ctx.fillText('REMOVED', Math.max(a, 0) + 6, top + 14); }
+  });
+  // cut lines
+  ctx.strokeStyle = '#e6e7ea'; ctx.lineWidth = 1; ctx.beginPath();
+  for (let i = 1; i < segs.length; i++){ const x = Math.round(tx(segs[i].s)) + .5; ctx.moveTo(x, top - 3); ctx.lineTo(x, bot + 3); }
+  ctx.stroke();
+  // playhead
+  const px = Math.round(tx(curT())) + .5;
+  ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, H); ctx.stroke();
+  ctx.fillStyle = '#ff3b30'; ctx.beginPath(); ctx.moveTo(px - 6, 0); ctx.lineTo(px + 6, 0); ctx.lineTo(px, 8); ctx.fill();
+  // scrollbar when zoomed
+  if (view.len < dur - 1e-6){
+    const sx = view.start / dur * W, sw = Math.max(20, view.len / dur * W);
+    ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(sx, H - 3, sw, 3);
+  }
+}
+
+// timeline mouse
+let drag = null, hoverSeg = -1;
+function hit(x, y){
+  const top = RULER + PAD, bot = H - PAD;
+  if (y >= top - 2 && y <= top + 12){
+    for (let i = 0; i < segs.length; i++){
+      const g = segs[i]; if (!g.on) continue;
+      const xi = tx(g.s) + g.fi / view.len * W, xo = tx(g.e) - g.fo / view.len * W;
+      if (Math.abs(x - xi) <= 7 && x >= tx(g.s) - 1) return {kind:'fi', i};
+      if (Math.abs(x - xo) <= 7 && x <= tx(g.e) + 1) return {kind:'fo', i};
+    }
+  }
+  if (y > top && y < bot){
+    for (let i = 1; i < segs.length; i++) if (Math.abs(x - tx(segs[i].s)) <= 5) return {kind:'cut', i};
+  }
+  return {kind: y < RULER ? 'ruler' : 'body'};
+}
+cv.addEventListener('mousedown', e => {
+  if (!segs.length || e.button !== 0) return;
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top, h = hit(x, y);
+  document.activeElement && document.activeElement.blur && document.activeElement.blur();
+  if (h.kind === 'fi' || h.kind === 'fo'){ snapshot(); sel = h.i; drag = h; }
+  else if (h.kind === 'cut'){ snapshot(); drag = h; }
+  else { const t = xt(x); drag = {kind:'scrub', wasPlaying: !v.paused}; v.pause(); sel = segAt(t); seek(t); }
+  syncUI(); draw();
+});
+window.addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  if (!drag){
+    if (!info) return;
+    const h = hit(x, y);
+    cv.style.cursor = h.kind === 'cut' ? 'ew-resize' : (h.kind === 'fi' || h.kind === 'fo') ? 'col-resize' : 'default';
+    const hs = (y > RULER && y < H && x >= 0 && x <= W) ? segAt(xt(x)) : -1;
+    if (hs !== hoverSeg){ hoverSeg = hs; draw(); }
+    return;
+  }
+  const t = clamp(xt(x), 0, dur);
+  if (drag.kind === 'scrub'){ seek(t); sel = segAt(t); syncUI(); }
+  else if (drag.kind === 'cut'){
+    const a = segs[drag.i - 1], b = segs[drag.i];
+    const nt = clamp(t, a.s + minLen(), b.e - minLen());
+    a.e = b.s = nt; a.fo = Math.min(a.fo, a.e - a.s - a.fi); b.fi = Math.min(b.fi, b.e - b.s - b.fo);
+    seek(nt); syncUI(); draw();
+  } else {
+    const g = segs[drag.i];
+    if (drag.kind === 'fi') setFade('fi', t - g.s, drag.i, false); else setFade('fo', g.e - t, drag.i, false);
+  }
+});
+window.addEventListener('mouseup', () => { if (drag && drag.kind === 'scrub' && drag.wasPlaying) v.play(); drag = null; });
+cv.addEventListener('dblclick', e => { const r = cv.getBoundingClientRect(); const h = hit(e.clientX - r.left, e.clientY - r.top); if (h.kind === 'body') split(xt(e.clientX - r.left)); });
+cv.addEventListener('wheel', e => {
+  if (!info) return; e.preventDefault();
+  const r = cv.getBoundingClientRect(), x = e.clientX - r.left;
+  if (e.ctrlKey || e.altKey) zoom(e.deltaY < 0 ? 1/1.25 : 1.25, xt(x), x);
+  else { const d = (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) / W * view.len; view.start = clamp(view.start + d, 0, Math.max(0, dur - view.len)); draw(); }
+}, {passive:false});
+function zoom(f, anchorT = curT(), anchorX = tx(curT())){
+  const nl = clamp(view.len * f, Math.min(dur, 20 / fps), dur);
+  view.len = nl; view.start = clamp(anchorT - anchorX / W * nl, 0, Math.max(0, dur - nl)); draw();
+}
+
+// ---------- keyboard ----------
+document.addEventListener('keydown', e => {
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT'){ if (e.key === 'Enter' || e.key === 'Escape') e.target.blur(); if (e.key !== 'Escape') return; }
+  if ($('modal').style.display === 'flex'){ if (e.key === 'Escape' && !exporting) hideModal(); return; }
+  const k = e.key, c = e.ctrlKey || e.metaKey;
+  let handled = true;
+  if (c && k.toLowerCase() === 'o') send({type:'open'});
+  else if (c && k.toLowerCase() === 'e') doExport(e.shiftKey);
+  else if (c && k.toLowerCase() === 'z') e.shiftKey ? redo() : undo();
+  else if (c && k.toLowerCase() === 'y') redo();
+  else if (!segs.length) handled = false;
+  else if (k === ' ' || k === 'k' || k === 'K') togglePlay();
+  else if (k === 's' || k === 'S' || k === 'b' || k === 'B') split(curT());
+  else if (k === 'Delete' || k === 'Backspace' || k === 'x' || k === 'X') toggleRemove();
+  else if (k === 'i' || k === 'I') trim('in');
+  else if (k === 'o' || k === 'O') trim('out');
+  else if (k === 'f' || k === 'F') toggleFade();
+  else if (k === 'p' || k === 'P') { S.preview = !S.preview; $('cPrev').checked = S.preview; saveSettings(); }
+  else if (k === 'ArrowRight') step(e.shiftKey ? 1 : c ? 5 : 'f+');
+  else if (k === 'ArrowLeft') step(e.shiftKey ? -1 : c ? -5 : 'f-');
+  else if (k === 'l' || k === 'L') step(1);
+  else if (k === 'j' || k === 'J') step(-1);
+  else if (k === 'Home') { seek(0); sel = 0; syncUI(); }
+  else if (k === 'End') { seek(dur); sel = segs.length - 1; syncUI(); }
+  else if (k === ']') jumpCut(1);
+  else if (k === '[') jumpCut(-1);
+  else if (k === 'ArrowUp') { sel = clamp(sel - 1, 0, segs.length - 1); syncUI(); draw(); }
+  else if (k === 'ArrowDown') { sel = clamp(sel + 1, 0, segs.length - 1); syncUI(); draw(); }
+  else if (k === '+' || k === '=') zoom(1/1.5);
+  else if (k === '-' || k === '_') zoom(1.5);
+  else if (k === '0') { view = {start:0, len:dur}; draw(); }
+  else if (k === 'Escape') { $('pop').style.display = 'none'; }
+  else if (k === 'm' || k === 'M') { S.volume = S.volume > 0 ? 0 : 1; saveSettings(); toast(S.volume ? 'Sound on' : 'Muted', true); }
+  else handled = false;
+  if (handled) e.preventDefault();
+});
+window.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, {passive:false});
+syncUI();
+send({type:'ready'});
+</script>
+</body>
+</html>
